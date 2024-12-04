@@ -1,0 +1,10 @@
+Flask
+Flask-PyMongo
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug
+requests
+pymongo
+bson
+Flask-SocketIO
+python-socketio

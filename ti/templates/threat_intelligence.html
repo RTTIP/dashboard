@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Threat Intelligence</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Previous styles remain the same */
+        .add-threat-button {
+            margin-bottom: 20px;
+        }
+        .modal-body .form-group {
+            margin-bottom: 1rem;
+        }
+
+    .modal-body label {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    .modal-body p {
+        font-size: 1rem;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 4px;
+    }
+    
+    .toast {
+        opacity: 1 !important;
+    }
+    
+    .toast.bg-success {
+        background-color: #28a745 !important;
+    }
+    
+    .toast.bg-danger {
+        background-color: #dc3545 !important;
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.8em;
+    }
+    </style>
+</head>
+<body>
+    <!-- Add this after the opening body tag -->
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer">
+    <!-- Toasts will be dynamically added here -->
+</div>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-shield-alt"></i> Threat Intelligence</h1>
+                <div class="text-end">
+                    <button class="btn btn-success me-2" onclick="showAddThreatModal()">
+                        <i class="fas fa-plus"></i> Add Threat
+                    </button>
+                    <button class="btn btn-light" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <i class="fas fa-exclamation-circle fa-2x mb-2 text-danger"></i>
+                    <h3 id="criticalThreats">0</h3>
+                    <p>Critical Threat (Level 1)</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
+                    <h3 id="highThreats">0</h3>
+                    <p>High Threat (Level 2)</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <i class="fas fa-exclamation fa-2x mb-2 text-info"></i>
+                    <h3 id="mediumThreats">0</h3>
+                    <p>Medium Threat (Level 3)</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <h3 id="lowThreats">0</h3>
+                    <p>Low Threat (Level 4)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Table -->
+        <div class="threat-table-container">
+            <h2>Threat Details</h2>
+            <table id="threatTable" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Threat ID</th>
+                        <th>Type</th>
+                        <th>Source</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                        <th>Observed Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="threatTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Threat Modal -->
+    <div class="modal fade" id="addThreatModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Threat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addThreatForm">
+                        <div class="form-group">
+                            <label>Threat ID</label>
+                            <input type="text" class="form-control" id="threatId" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Source</label>
+                            <input type="text" class="form-control" id="source" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <input type="text" class="form-control" id="type" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Severity (1-4)</label>
+                            <select class="form-control" id="severity" required>
+                                <option value="1">1 - Critical</option>
+                                <option value="2">2 - High</option>
+                                <option value="3">3 - Medium</option>
+                                <option value="4">4 - Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea class="form-control" id="description" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Indicators (comma-separated)</label>
+                            <input type="text" class="form-control" id="indicators">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="submitThreat()">Add Threat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Button -->
+    <button class="home-button" onclick="window.location.href='/'">
+        <i class="fas fa-home"></i>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        let threatTable;
+
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/threats');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                alert('Error fetching threat data. Please try again.');
+            }
+        }
+
+        function updateUI(data) {
+            const threats = data.threats || [];
+            updateStatistics(data);
+            
+            if (threatTable) {
+                threatTable.destroy();
+            }
+
+            const threatTableBody = document.getElementById('threatTableBody');
+            threatTableBody.innerHTML = '';
+
+            threats.forEach(threat => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${threat.threat_id}</td>
+                    <td>${threat.type}</td>
+                    <td>${threat.source}</td>
+                    <td>${getSeverityBadge(threat.severity)}</td>
+                    <td>${threat.description}</td>
+                    <td>${formatDate(threat.observed_date)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewThreatDetails('${threat.threat_id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                threatTableBody.appendChild(row);
+            });
+
+            // Initialize DataTable
+            threatTable = $('#threatTable').DataTable({
+                order: [[3, 'asc']], // Sort by severity
+                pageLength: 10
+            });
+        }
+
+        function updateStatistics(data) {
+            const threats = data.threats || [];
+            const stats = {
+                critical: threats.filter(t => t.severity === 1).length,
+                high: threats.filter(t => t.severity === 2).length,
+                medium: threats.filter(t => t.severity === 3).length,
+                low: threats.filter(t => t.severity === 4).length
+            };
+
+            document.getElementById('criticalThreats').innerText = stats.critical;
+            document.getElementById('highThreats').innerText = stats.high;
+            document.getElementById('mediumThreats').innerText = stats.medium;
+            document.getElementById('lowThreats').innerText = stats.low;
+        }
+
+        function getSeverityBadge(severity) {
+            const severityMap = {
+                1: ['critical', 'Critical'],
+                2: ['high', 'High'],
+                3: ['medium', 'Medium'],
+                4: ['low', 'Low']
+            };
+            const [level, text] = severityMap[severity] || ['unknown', 'Unknown'];
+            return `<span class="severity-badge severity-${level}">${text}</span>`;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        function showAddThreatModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addThreatModal'));
+            modal.show();
+        }
+
+        async function submitThreat() {
+            const threatData = {
+                threat_id: document.getElementById('threatId').value,
+                source: document.getElementById('source').value,
+                type: document.getElementById('type').value,
+                severity: parseInt(document.getElementById('severity').value),
+                description: document.getElementById('description').value,
+                observed_date: new Date().toISOString(),
+                indicators: document.getElementById('indicators').value.split(',').map(i => i.trim())
+            };
+
+            try {
+                const response = await fetch('/api/threats/ingest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(threatData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to add threat');
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('addThreatModal')).hide();
+                document.getElementById('addThreatForm').reset();
+                await fetchData();
+                alert('Threat added successfully!');
+            } catch (error) {
+                console.error('Error adding threat:', error);
+                alert('Error adding threat. Please try again.');
+            }
+        }
+
+
+        function refreshData() {
+            fetchData();
+        }
+
+        // Fetch data on page load
+        document.addEventListener('DOMContentLoaded', fetchData);
+
+        // Refresh data every 5 minutes
+        setInterval(fetchData, 300000);
+
+        async function viewThreatDetails(threatId) {
+            try {
+                const response = await fetch(`/api/threats/${threatId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch threat details');
+                }
+                const threat = await response.json();
+                
+                // Populate modal with threat details
+                document.getElementById('viewThreatId').textContent = threat.threat_id;
+                document.getElementById('viewType').textContent = threat.type;
+                document.getElementById('viewSource').textContent = threat.source;
+                document.getElementById('viewSeverity').innerHTML = getSeverityBadge(threat.severity);
+                document.getElementById('viewObservedDate').textContent = formatDate(threat.observed_date);
+                document.getElementById('viewLastUpdated').textContent = formatDate(threat.updated_at) || 'N/A';
+                document.getElementById('viewDescription').textContent = threat.description;
+                
+                // Format indicators as badges
+                const indicatorsHtml = threat.indicators && threat.indicators.length > 0
+                    ? threat.indicators.map(indicator => 
+                        `<span class="badge bg-secondary me-1 mb-1">${indicator}</span>`
+                      ).join('')
+                    : 'No indicators available';
+                document.getElementById('viewIndicators').innerHTML = indicatorsHtml;
+        
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('viewThreatModal'));
+                modal.show();
+            } catch (error) {
+                console.error('Error fetching threat details:', error);
+                showToast('Error fetching threat details. Please try again.', 'error');
+            }
+        }
+        
+        // Add helper function for showing toasts
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const toastId = `toast-${Date.now()}`;
+            
+            toast.className = `toast align-items-center border-0 ${type === 'error' ? 'bg-danger' : 'bg-success'} text-white`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            toast.setAttribute('id', toastId);
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+    </script>
+
+    <div class="modal fade" id="viewThreatModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Threat Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="fw-bold">Threat ID</label>
+                                <p id="viewThreatId" class="mb-0"></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Type</label>
+                                <p id="viewType" class="mb-0"></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Source</label>
+                                <p id="viewSource" class="mb-0"></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="fw-bold">Severity</label>
+                                <p id="viewSeverity" class="mb-0"></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Observed Date</label>
+                                <p id="viewObservedDate" class="mb-0"></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Last Updated</label>
+                                <p id="viewLastUpdated" class="mb-0"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Description</label>
+                        <p id="viewDescription" class="mb-0"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Indicators</label>
+                        <div id="viewIndicators" class="mb-0"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
